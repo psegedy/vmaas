@@ -1,6 +1,6 @@
 # VMaaS
 
-[![Build Status](https://travis-ci.org/RedHatInsights/vmaas.svg?branch=master)](https://travis-ci.org/RedHatInsights/vmaas)
+[![Build Status](https://travis-ci.org/psegedy/vmaas.svg?branch=master)](https://travis-ci.org/RedHatInsights/vmaas)
 
 Vulnerability Metadata as a Service
 
