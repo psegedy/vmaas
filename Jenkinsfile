@@ -39,7 +39,7 @@ def runStages() {
                 // install devpi
                 sh 'pip install --user --no-warn-script-location -U pip devpi-client setuptools setuptools_scm wheel'
                 // set devpi address
-                sh "devpi use http://devpi.devpi.svc/root/psav --set-cfg"
+                sh "devpi use ${DEV_PI} --set-cfg"
                 // install iqe-tests
                 sh "pip install --user --no-warn-script-location iqe-integration-tests iqe-clientv3-plugin"
                 // install vulnerability plugin
