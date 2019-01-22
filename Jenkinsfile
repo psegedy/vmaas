@@ -30,8 +30,8 @@ def runStages() {
         // check out source again to get it in this node's workspace
         scmVars = checkout scm
 
-        // checkout vmaas-tests git repository
-        checkOutRepo targetDir: 'vmaas-tests', repoUrl: 'https://github.com/RedHatInsights/vmaas-tests'
+        // checkout vmaas_tests git repository
+        checkOutRepo targetDir: 'vmaas_tests', repoUrl: 'https://github.com/RedHatInsights/vmaas_tests'
         // checkOutRepo targetDir: 'vmaas-yamls', repoUrl: 'https://github.com/psegedy/vmaas-yamls'
 
         stage('Pip install') {
@@ -44,7 +44,7 @@ def runStages() {
                 sh "pip install --user --no-warn-script-location iqe-integration-tests iqe-clientv3-plugin"
                 // install vulnerability plugin
                 // sh "pip install --user --no-warn-script-location iqe-vulnerability-plugin"
-                sh "pip install --user --no-warn-script-location -e vmaas-tests"
+                sh "pip install --user --no-warn-script-location -e vmaas_tests"
                 sh "pip install --user --no-warn-script-location pytest-html"
                 sh "pip install --user --no-warn-script-location pytest-report-parameters"
             }
