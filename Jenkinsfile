@@ -73,38 +73,30 @@ def runStages() {
                 sh "${pipelineVars.venvDir}/bin/pip install -r requirements.txt"
                 sh """
                 # Create an env.yaml to have the builder pull from a different branch
-                echo "platform/vmaas-apidoc:" > builder-env.yml
+                echo "vmaas/vmaas-apidoc:" > builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "platform/vmaas-reposcan:" >> builder-env.yml
+                echo "vmaas/vmaas-reposcan:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "platform/vmaas-webapp:" >> builder-env.yml
+                echo "vmaas/vmaas-webapp:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "platform/vmaas-websocket:" >> builder-env.yml
+                echo "vmaas/vmaas-websocket:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "platform/vmaas-db:" >> builder-env.yml
+                echo "vmaas/vmaas-db:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
 
                 # Deploy these customized builders into 'vmaas-qe' project
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-apidoc \
-                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-db \
-                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-reposcan \
-                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-webapp \
-                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-websocket \
-                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas --template-dir buildfactory \
+                    -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
 
                 # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
                 echo "vmaas/vmaas-apidoc:" > env.yml
