@@ -76,40 +76,50 @@ def runStages() {
                 echo "platform/vmaas-apidoc:" > builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
                 echo "platform/vmaas-reposcan:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
                 echo "platform/vmaas-webapp:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
                 echo "platform/vmaas-websocket:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
                 echo "platform/vmaas-db:" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
 
                 # Deploy these customized builders into 'vmaas-qe' project
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-apidoc -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-db -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-reposcan -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-webapp -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-websocket -e builder-env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-apidoc \
+                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-db \
+                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-reposcan \
+                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-webapp \
+                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-websocket \
+                    --template-dir buildfactory -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
 
                 # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
-                echo "platform/vmaas-apidoc:" > env.yml
+                echo "vmaas/vmaas-apidoc:" > env.yml
                 echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "platform/vmaas-reposcan:" >> env.yml
+                echo "vmaas/vmaas-reposcan:" >> env.yml
                 echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "platform/vmaas-webapp:" >> env.yml
+                echo "vmaas/vmaas-webapp:" >> env.yml
                 echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "platform/vmaas-websocket:" >> env.yml
+                echo "vmaas/vmaas-websocket:" >> env.yml
                 echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "platform/vmaas-db:" >> env.yml
+                echo "vmaas/vmaas-db:" >> env.yml
                 echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
 
                 # Deploy the vmaas service set, the insights-advisor-api will be using your custom image.
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas -e env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas -e env.yml vmaas-qe --secrets-local-dir secrets/sanitized
                 """
             }
         }
