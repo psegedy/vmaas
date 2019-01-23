@@ -12,7 +12,7 @@ codecovThreshold = 89
 
 properties(
     [
-        pipelineTriggers([cron('H 22 * * *')]),
+        pipelineTriggers([cron("H 22 * * *")]),
     ]
 )
 
@@ -27,17 +27,24 @@ node {
 def runStages() {
     // withNode is a helper to spin up a jnlp slave using the Kubernetes plugin, and run the body code on that slave
     openShift.withNode(image: "docker-registry.default.svc:5000/jenkins/jenkins-slave-vmaas:latest") {
-        // check out source again to get it in this node's workspace
+        // check out source again to get it in this node"s workspace
         scmVars = checkout scm
 
         // checkout vmaas_tests git repository
-        checkOutRepo targetDir: 'vmaas_tests', repoUrl: 'https://github.com/RedHatInsights/vmaas_tests'
-        // checkOutRepo targetDir: 'vmaas-yamls', repoUrl: 'https://github.com/psegedy/vmaas-yamls'
+        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/psegedy/vmaas_tests")
+        // checkOutRepo targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls" credentialsId: ""
 
-        stage('Pip install') {
+        if (currentBuild.currentResult == "SUCCESS") {
+            if (env.BRANCH_NAME == "master") {
+                // Stages to run specifically if master branch was updated
+                // rebuild and deploy vmaas
+            }
+        }
+
+        stage("Pip install") {
             withStatusContext.pipInstall {
                 // install devpi
-                sh 'pip install --user --no-warn-script-location -U pip devpi-client setuptools setuptools_scm wheel'
+                sh "pip install --user --no-warn-script-location -U pip devpi-client setuptools setuptools_scm wheel"
                 // set devpi address
                 sh "devpi use ${DEV_PI} --set-cfg"
                 // install iqe-tests
@@ -50,40 +57,78 @@ def runStages() {
             }
         }
 
-        // stage('Deploy vmaas') {
-        //     // todo With status context
-        //     stage('Login as deployer account') {
-        //         withCredentials([string(credentialsId: 'envConfig['deployerSecretId']', variable: 'TOKEN')]) {
-        //             sh "oc login https://${pipelineVars.devCluster} --token=${TOKEN}"
-        //         }
+        stage("Deploy vmaas") {
+            // todo With status context
+            stage("Login as deployer account") {
+                withCredentials([string(credentialsId: "openshift_token", variable: "TOKEN")]) {
+                    sh "oc login https://${pipelineVars.devCluster} --token=${TOKEN}"
+                }
+                sh "oc project vmaas-qe"
+            }
+            
+            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: pipelineVars.e2eDeployRepoSsh, credentialsId: pipelineVars.gitSshCreds)
+            sh "python3.6 -m venv ${pipelineVars.venvDir}"
+            sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
+            dir(pipelineVars.e2eDeployDir) {
+                sh "${pipelineVars.venvDir}/bin/pip install -r requirements.txt"
+                sh """
+                # Create an env.yaml to have the builder pull from a different branch
+                echo "platform/vmaas-apidoc:" > builder-env.yml
+                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "platform/vmaas-reposcan:" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "platform/vmaas-webapp:" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "platform/vmaas-websocket:" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                echo "platform/vmaas-db:" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
 
-        //         sh "oc project ${envConfig['project']}"
-        //     }
-        //     deployService(service: 'templates/vmaas', project: 'vmaas-qe', env: 'ci')
-        // }
+                # Deploy these customized builders into 'vmaas-qe' project
+                ocdeployer deploy --pick platform/vmaas-apidoc -e builder-env.yml vmaas-qe
+                ocdeployer deploy --pick platform/vmaas-db -e builder-env.yml vmaas-qe
+                ocdeployer deploy --pick platform/vmaas-reposcan -e builder-env.yml vmaas-qe
+                ocdeployer deploy --pick platform/vmaas-webapp -e builder-env.yml vmaas-qe
+                ocdeployer deploy --pick platform/vmaas-websocket -e builder-env.yml vmaas-qe
 
-        stage('Integration tests') {
+                # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
+                echo "platform/vmaas-apidoc:" > env.yml
+                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                echo "platform/vmaas-reposcan:" >> env.yml
+                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                echo "platform/vmaas-webapp:" >> env.yml
+                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                echo "platform/vmaas-websocket:" >> env.yml
+                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                echo "platform/vmaas-db:" >> env.yml
+                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+
+                # Deploy the vmaas service set, the insights-advisor-api will be using your custom image.
+                ocdeployer deploy --sets vmaas -e env.yml vmaas-qe
+                """
+            }
+        }
+
+        stage("Integration tests") {
             // withStatusContext runs the body code and notifies GitHub on whether it passed or failed
-            // 'unitTest' will notify the "continuous-integration/jenkins/unittest" status
+            // "unitTest" will notify the "continuous-integration/jenkins/unittest" status
             sh "${pipelineVars.userPath}/iqe plugin list"
             withStatusContext.unitTest {
                 sh "cd ${WORKSPACE} && pwd"
-                sh "echo 'RUN TESTS' | tee junit.xml"
+                sh "echo "RUN TESTS" | tee junit.xml"
             }
-            junit 'junit.xml'
+            junit "junit.xml"
         }
 
-        stage('Code coverage') {
+        stage("Code coverage") {
             // Checks code coverage results of the above unit tests with coverage.py, this step fails if coverage is below codecovThreshold
             // Notifies GitHub with the "continuous-integration/jenkins/coverage" status
             checkCoverage(threshold: codecovThreshold)
-        }
-
-        if (currentBuild.currentResult == 'SUCCESS') {
-            if (env.BRANCH_NAME == 'master') {
-                // Stages to run specifically if master branch was updated
-                // rebuild and deploy vmaas
-            }
         }
     }
 }
