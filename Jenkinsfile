@@ -65,7 +65,7 @@ def runStages() {
                 }
                 sh "oc project vmaas-qe"
             }
-            
+
             checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: pipelineVars.e2eDeployRepoSsh, credentialsId: pipelineVars.gitSshCreds)
             sh "python3.6 -m venv ${pipelineVars.venvDir}"
             sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
@@ -90,11 +90,11 @@ def runStages() {
                 echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
 
                 # Deploy these customized builders into 'vmaas-qe' project
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy --pick platform/vmaas-apidoc -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy --pick platform/vmaas-db -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy --pick platform/vmaas-reposcan -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy --pick platform/vmaas-webapp -e builder-env.yml vmaas-qe
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy --pick platform/vmaas-websocket -e builder-env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-apidoc -e builder-env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-db -e builder-env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-reposcan -e builder-env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-webapp -e builder-env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --pick platform/vmaas-websocket -e builder-env.yml vmaas-qe
 
                 # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
                 echo "platform/vmaas-apidoc:" > env.yml
@@ -109,7 +109,7 @@ def runStages() {
                 echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
 
                 # Deploy the vmaas service set, the insights-advisor-api will be using your custom image.
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy --sets vmaas -e env.yml vmaas-qe
+                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas -e env.yml vmaas-qe
                 """
             }
         }
