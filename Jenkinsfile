@@ -138,7 +138,7 @@ def runStages() {
                         vmaas/scripts/setup_db.sh ${WORKSPACE}/vmaas-yamls/data/repolist.json \
                             http://vmaas-reposcan.vmaas-qe.svc:8081 \
                             http://vmaas-webapp.vmaas-qe.svc:8080 \
-                            vmaas-bot-token
+                            ${vmaas-bot-token}
                         sleep 10
                     """    
                 }
@@ -146,7 +146,7 @@ def runStages() {
                     sh "iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html"
                 }
             }
-            junit "junit.xml"
+            junit "iqe-junit-report.xml"
         }
 
         stage("Code coverage") {
