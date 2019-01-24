@@ -72,7 +72,7 @@ def runStages() {
             dir(pipelineVars.e2eDeployDir) {
                 sh "${pipelineVars.venvDir}/bin/pip install -r requirements.txt"
                 // wipe old deployment
-                sh "${pipelineVars.venvDir}/bin/ocdeployer wipe vmaas-qe -l app=vmaas"
+                sh "${pipelineVars.venvDir}/bin/ocdeployer wipe -f vmaas-qe -l app=vmaas"
                 sh """
                     # Create an env.yaml to have the builder pull from a different branch
                     echo "vmaas/vmaas-apidoc:" > builder-env.yml
