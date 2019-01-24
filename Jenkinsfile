@@ -31,7 +31,7 @@ def runStages() {
         scmVars = checkout scm
 
         // checkout vmaas_tests git repository
-        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/psegedy/vmaas_tests", credentialsId: "github")
+        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/RedHatInsights/vmaas_tests", credentialsId: "github")
         checkOutRepo(targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls", credentialsId: "github")
 
         // if (currentBuild.currentResult == "SUCCESS") {
