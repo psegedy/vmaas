@@ -136,13 +136,15 @@ def runStages() {
                     sh """
                         cd vmaas_tests
                         vmaas/scripts/setup_db.sh ${WORKSPACE}/vmaas-yamls/data/repolist.json \
-                            http://vmaas-reposcan.vmaas-qe.svc:8080 \
-                            http://vmaas-webapp.vmaas-qe.svc:8081 \
+                            http://vmaas-reposcan.vmaas-qe.svc:8081 \
+                            http://vmaas-webapp.vmaas-qe.svc:8080 \
                             vmaas-bot-token
                         sleep 10
                     """    
                 }
-
+                stage("Run tests") {
+                    sh "iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html"
+                }
             }
             junit "junit.xml"
         }
