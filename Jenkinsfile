@@ -133,14 +133,17 @@ def runStages() {
                     sed -i 's|localhost|http://vmaas-webapp.vmaas-qe.svc:8080|g' settings.default.yaml
                 """
                 stage("Setup DB") {
+                    withCredentials([string(credentialsId: "vmaas-bot-token", variable: "TOKEN")]) {
                     sh """
                         cd vmaas_tests
                         vmaas/scripts/setup_db.sh ${WORKSPACE}/vmaas-yamls/data/repolist.json \
                             http://vmaas-reposcan.vmaas-qe.svc:8081 \
                             http://vmaas-webapp.vmaas-qe.svc:8080 \
-                            ${vmaas-bot-token}
+                            ${TOKEN}
                         sleep 10
-                    """    
+                    """   
+                    }
+ 
                 }
                 stage("Run tests") {
                     sh "iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html"
