@@ -31,15 +31,15 @@ def runStages() {
         scmVars = checkout scm
 
         // checkout vmaas_tests git repository
-        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/psegedy/vmaas_tests")
-        // checkOutRepo targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls" credentialsId: ""
+        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/psegedy/vmaas_tests" credentialsId: "github")
+        checkOutRepo targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls" credentialsId: "github"
 
-        if (currentBuild.currentResult == "SUCCESS") {
-            if (env.BRANCH_NAME == "master") {
-                // Stages to run specifically if master branch was updated
-                // rebuild and deploy vmaas
-            }
-        }
+        // if (currentBuild.currentResult == "SUCCESS") {
+        //     if (env.BRANCH_NAME == "master") {
+        //         // Stages to run specifically if master branch was updated
+        //         // rebuild and deploy vmaas
+        //     }
+        // }
 
         stage("Pip install") {
             withStatusContext.pipInstall {
@@ -48,7 +48,7 @@ def runStages() {
                 // set devpi address
                 sh "devpi use ${DEV_PI} --set-cfg"
                 // install iqe-tests
-                sh "pip install --user --no-warn-script-location iqe-integration-tests iqe-clientv3-plugin"
+                sh "pip install --user --no-warn-script-location iqe-integration-tests iqe-clientv3-plugin iqe-current-ui-plugin"
                 // install vulnerability plugin
                 // sh "pip install --user --no-warn-script-location iqe-vulnerability-plugin"
                 sh "pip install --user --no-warn-script-location -e vmaas_tests"
@@ -71,47 +71,49 @@ def runStages() {
             sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
             dir(pipelineVars.e2eDeployDir) {
                 sh "${pipelineVars.venvDir}/bin/pip install -r requirements.txt"
+                // wipe old deployment
+                sh "${pipelineVars.venvDir}/bin/ocdeployer wipe -l app=vmaas"
                 sh """
-                # Create an env.yaml to have the builder pull from a different branch
-                echo "vmaas/vmaas-apidoc:" > builder-env.yml
-                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "vmaas/vmaas-reposcan:" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "vmaas/vmaas-webapp:" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "vmaas/vmaas-websocket:" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                echo "vmaas/vmaas-db:" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                    # Create an env.yaml to have the builder pull from a different branch
+                    echo "vmaas/vmaas-apidoc:" > builder-env.yml
+                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                    echo "vmaas/vmaas-reposcan:" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                    echo "vmaas/vmaas-webapp:" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                    echo "vmaas/vmaas-websocket:" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                    echo "vmaas/vmaas-db:" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
 
-                # Deploy these customized builders into 'vmaas-qe' project
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas --template-dir buildfactory \
-                    -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                    # Deploy these customized builders into 'vmaas-qe' project
+                    ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas --template-dir buildfactory \
+                        -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
 
-                # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
-                echo "vmaas/vmaas-apidoc:" > env.yml
-                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "vmaas/vmaas-reposcan:" >> env.yml
-                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "vmaas/vmaas-webapp:" >> env.yml
-                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "vmaas/vmaas-websocket:" >> env.yml
-                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                echo "vmaas/vmaas-db:" >> env.yml
-                echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                    # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
+                    echo "vmaas/vmaas-apidoc:" > env.yml
+                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                    echo "vmaas/vmaas-reposcan:" >> env.yml
+                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                    echo "vmaas/vmaas-webapp:" >> env.yml
+                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                    echo "vmaas/vmaas-websocket:" >> env.yml
+                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                    echo "vmaas/vmaas-db:" >> env.yml
+                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
 
-                # Deploy the vmaas service set, the insights-advisor-api will be using your custom image.
-                ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas -e env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                    # Deploy the vmaas service set, the insights-advisor-api will be using your custom image.
+                    ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas -e env.yml vmaas-qe --secrets-local-dir secrets/sanitized
                 """
             }
         }
@@ -121,8 +123,26 @@ def runStages() {
             // "unitTest" will notify the "continuous-integration/jenkins/unittest" status
             sh "${pipelineVars.userPath}/iqe plugin list"
             withStatusContext.unitTest {
-                sh "cd ${WORKSPACE} && pwd"
-                sh "echo "RUN TESTS" | tee junit.xml"
+                sh """
+                    cd ~/.local/lib/python3.6/site-packages/iqe/conf
+                    ln -rs ${WORKSPACE}/vmaas-yamls/conf/credentials.yaml
+                """
+                sh """
+                    cd vmaas_tests/iqe_vulnerability/conf
+                    ln -rs ${WORKSPACE}/vmaas-yamls/conf/settings.local.yaml
+                    sed -i 's|localhost|http://vmaas-webapp.vmaas-qe.svc:8080|g' settings.default.yaml
+                """
+                stage("Setup DB") {
+                    sh """
+                        cd vmaas_tests
+                        vmaas/scripts/setup_db.sh ${WORKSPACE}/vmaas-yamls/data/repolist.json \
+                            http://vmaas-reposcan.vmaas-qe.svc:8080 \
+                            http://vmaas-webapp.vmaas-qe.svc:8081 \
+                            vmaas-bot-token
+                        sleep 10
+                    """    
+                }
+
             }
             junit "junit.xml"
         }
