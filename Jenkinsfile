@@ -146,7 +146,7 @@ def runStages() {
  
                 }
                 stage("Run tests") {
-                    sh """
+                    sh '''
                         cd vmaas_tests
                         pytest_status=0
                         # run only vmaas tests for now
@@ -165,7 +165,7 @@ def runStages() {
                         if [ "$pytest_status" -gt 1 ]; then
                             exit "$pytest_status"
                         fi
-                    """
+                    '''
                 }
             }
             junit "iqe-junit-report.xml"
