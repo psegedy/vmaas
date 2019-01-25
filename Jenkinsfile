@@ -146,7 +146,26 @@ def runStages() {
  
                 }
                 stage("Run tests") {
-                    sh "iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html"
+                    sh """
+                        cd vmaas_tests
+                        pytest_status=0
+                        # run only vmaas tests for now
+                        if [ -d iqe_vulnerability/tests/vmaas ]; then
+                          iqe tests custom -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html iqe_vulnerability/tests/vmaas || pytest_status="$?"
+                        else
+                          iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html || pytest_status="$?"
+                        fi
+                        # Running pytest can result in six different exit codes:
+                        # 0: All tests were collected and passed successfully
+                        # 1: Tests were collected and run but some of the tests failed
+                        # 2: Test execution was interrupted by the user
+                        # 3: Internal error happened while executing tests
+                        # 4: pytest command line usage error
+                        # 5: No tests were collected
+                        if [ "$pytest_status" -gt 1 ]; then
+                            exit "$pytest_status"
+                        fi
+                    """
                 }
             }
             junit "iqe-junit-report.xml"
