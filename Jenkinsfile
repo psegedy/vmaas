@@ -151,9 +151,9 @@ def runStages() {
                         pytest_status=0
                         # run only vmaas tests for now
                         if [ -d iqe_vulnerability/tests/vmaas ]; then
-                          iqe tests custom -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html iqe_vulnerability/tests/vmaas || pytest_status="$?"
+                            ~/.local/bin/iqe tests custom -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html iqe_vulnerability/tests/vmaas || pytest_status="$?"
                         else
-                          iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html || pytest_status="$?"
+                            ~/.local/bin/iqe tests plugin vulnerability -v --junit-xml="iqe-junit-report.xml" --html="report.html" --self-contained-html || pytest_status="$?"
                         fi
                         # Running pytest can result in six different exit codes:
                         # 0: All tests were collected and passed successfully
