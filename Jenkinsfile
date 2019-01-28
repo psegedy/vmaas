@@ -178,6 +178,7 @@ def runStages() {
                 }
             }
             junit "vmaas_tests/iqe-junit-report.xml"
+        }
 
         stage("Code coverage") {
             // Notifies GitHub with the "continuous-integration/jenkins/coverage" status
