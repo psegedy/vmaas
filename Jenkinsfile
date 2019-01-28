@@ -66,7 +66,7 @@ def runStages() {
                 sh "oc project vmaas-qe"
             }
 
-            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, "https://github.com/psegedy/e2e-deploy", credentialsId: "github")
+            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: "https://github.com/psegedy/e2e-deploy", credentialsId: "github")
             sh "python3.6 -m venv ${pipelineVars.venvDir}"
             sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
             dir(pipelineVars.e2eDeployDir) {
