@@ -109,7 +109,8 @@ def runStages() {
                     echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
                     echo "vmaas/vmaas-webapp:" >> env.yml
                     echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                    echo "  RESTART_POLICY: Never" >> env.yml
+                    # ??? spec.template.spec.restartPolicy: Unsupported value: "Never": supported values: "Always"
+                    # echo "  RESTART_POLICY: Never" >> env.yml 
                     echo "vmaas/vmaas-websocket:" >> env.yml
                     echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
                     echo "vmaas/vmaas-db:" >> env.yml
