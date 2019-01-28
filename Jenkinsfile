@@ -66,7 +66,7 @@ def runStages() {
                 sh "oc project vmaas-qe"
             }
 
-            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: pipelineVars.e2eDeployRepoSsh, credentialsId: pipelineVars.gitSshCreds)
+            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, "https://github.com/psegedy/e2e-deploy", credentialsId: "github")
             sh "python3.6 -m venv ${pipelineVars.venvDir}"
             sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
             dir(pipelineVars.e2eDeployDir) {
@@ -74,6 +74,7 @@ def runStages() {
                 // wipe old deployment
                 sh "${pipelineVars.venvDir}/bin/ocdeployer wipe -f vmaas-qe -l app=vmaas"
                 sh """
+                    git checkout vmaas_qa_needs
                     # Create an env.yaml to have the builder pull from a different branch
                     echo "vmaas/vmaas-apidoc:" > builder-env.yml
                     echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
