@@ -87,6 +87,7 @@ def runStages() {
                     echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                     echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
                     echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                    echo "  DOCKERFILE_PATH: Dockerfile-qe" >> builder-env.yml
                     echo "vmaas/vmaas-websocket:" >> builder-env.yml
                     echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
                     echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
@@ -107,6 +108,7 @@ def runStages() {
                     echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
                     echo "vmaas/vmaas-webapp:" >> env.yml
                     echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
+                    echo "  RESTART_POLICY: Never" >> env.yml
                     echo "vmaas/vmaas-websocket:" >> env.yml
                     echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
                     echo "vmaas/vmaas-db:" >> env.yml
@@ -132,6 +134,12 @@ def runStages() {
                     ln -rs ${WORKSPACE}/vmaas-yamls/conf/settings.local.yaml
                     sed -i 's|localhost|http://vmaas-webapp.vmaas-qe.svc:8080|g' settings.default.yaml
                 """
+                stage("Run vmaas-webapp with coverage") {
+                    sh '''
+                        webapp_pod="$(oc get pods | grep 'Running' | grep 'webapp' | awk '{print $1}')"
+                        oc exec "${webapp_pod}" -- bash -c "coverage run /app/app.py --source app &>/proc/1/fd/1"
+                    '''
+                }
                 stage("Setup DB") {
                     withCredentials([string(credentialsId: "vmaas-bot-token", variable: "TOKEN")]) {
                     sh """
@@ -168,13 +176,28 @@ def runStages() {
                     '''
                 }
             }
-            junit "iqe-junit-report.xml"
-        }
+            junit "vmaas_tests/iqe-junit-report.xml"
 
         stage("Code coverage") {
-            // Checks code coverage results of the above unit tests with coverage.py, this step fails if coverage is below codecovThreshold
             // Notifies GitHub with the "continuous-integration/jenkins/coverage" status
-            checkCoverage(threshold: codecovThreshold)
+            // Kill webapp and copy .coverage file
+            sh '''
+                webapp_pod="$(oc get pods | grep 'Running' | grep 'webapp' | awk '{print $1}')"
+                oc exec "${webapp_pod}" -- pkill -sigint coverage
+                oc cp "${webapp_pod}":/tmp/.coverage .coverage
+            '''
+            def status = 99
+
+            status = sh(
+                script: "${pipelineVars.userPath}/coverage html --fail-under=${threshold} --omit /usr/*",
+                returnStatus: true
+            )
+
+            archiveArtifacts 'htmlcov/*'
+
+            withStatusContext.coverage {
+                assert status == 0
+            }
         }
     }
 }
