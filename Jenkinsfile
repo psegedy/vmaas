@@ -120,7 +120,7 @@ def runStages() {
                 stage("Run vmaas-webapp with coverage") {
                     sh '''
                         webapp_pod="$(oc get pods | grep 'Running' | grep 'webapp' | awk '{print $1}')"
-                        oc exec "${webapp_pod}" -- bash -c "coverage run /app/app.py --source app &>/proc/1/fd/1"
+                        oc exec "${webapp_pod}" -- bash -c "coverage run /app/app.py --source app &>/proc/1/fd/1" &
                     '''
                 }
                 stage("Setup DB") {
