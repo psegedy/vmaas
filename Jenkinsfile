@@ -34,13 +34,6 @@ def runStages() {
         checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/RedHatInsights/vmaas_tests", credentialsId: "github")
         checkOutRepo(targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls", credentialsId: "github")
 
-        // if (currentBuild.currentResult == "SUCCESS") {
-        //     if (env.BRANCH_NAME == "master") {
-        //         // Stages to run specifically if master branch was updated
-        //         // rebuild and deploy vmaas
-        //     }
-        // }
-
         stage("Pip install") {
             withStatusContext.pipInstall {
                 // install devpi
@@ -101,27 +94,12 @@ def runStages() {
                     # Deploy these customized builders into 'vmaas-qe' project
                     ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas --template-dir buildfactory \
                         -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
-
-                    # Configure your service to look in 'vmaas-qe' for its image, rather than 'buildfactory'
-                    echo "vmaas/vmaas-apidoc:" > env.yml
-                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                    echo "vmaas/vmaas-reposcan:" >> env.yml
-                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                    echo "vmaas/vmaas-webapp:" >> env.yml
-                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                    echo "  PROBE_TYPE: tcpSocket" >> env.yml
-                    echo "  PROBE_PATH: /" >> env.yml
-                    echo "  PROBE_PORT: 22" >> env.yml
-                    # ??? spec.template.spec.restartPolicy: Unsupported value: "Never": supported values: "Always"
-                    # echo "  RESTART_POLICY: Never" >> env.yml 
-                    echo "vmaas/vmaas-websocket:" >> env.yml
-                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-                    echo "vmaas/vmaas-db:" >> env.yml
-                    echo "  IMAGE_NAMESPACE: vmaas-qe" >> env.yml
-
-                    # Deploy the vmaas service set, the insights-advisor-api will be using your custom image.
-                    ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas -e env.yml vmaas-qe --secrets-local-dir secrets/sanitized
                 """
+                // deploy vmaas service set
+                sh "${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas \
+                    --template-dir ../vmaas_tests/openshift/templates \
+                    -e ../vmaas_tests/openshift/env/env.yml \
+                    vmaas-qe --secrets-local-dir secrets/sanitized"
             }
         }
 
