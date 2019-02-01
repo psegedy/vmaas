@@ -156,6 +156,8 @@ def runStages() {
                         if [ "$pytest_status" -gt 1 ]; then
                             exit "$pytest_status"
                         fi
+                        mkdir html_report
+                        mv report.html html_report
                     '''
                 }
             }
@@ -185,6 +187,44 @@ def runStages() {
             withStatusContext.coverage {
                 assert status == 0
             }
+        }
+
+        stage("Publish in Polarion") {
+            // Publish results for tagged commits in Polarion
+            withCredentials([string(credentialsId: 'polarion_passwd', variable: 'PASSWORD'), 
+                             string(credentialsId: 'polarion_user', variable: 'USER')]) {
+                sh '''
+                    last_commit="$(git rev-parse --short HEAD)"
+                    versioned="$(git describe --tags --exact-match "$last_commit" 2>/dev/null)" || true
+                    if [ -n "$versioned" ]; then
+                        cd vmaas_tests
+                        testrun_name="test-run-vmaas-$versioned"
+                        ~/.local/bin/pip install dump2polarion
+                        polarion_dumper.py -i iqe-junit-report.xml -t "$testrun_name" \
+                            --user "$USER" --password "$PASSWORD" \
+                            --log-level=debug --verify-timeout=1200 || true
+                    fi
+                '''
+            }
+        }
+
+        stage("Publish HTML") {
+            publishHTML (target: [
+                  allowMissing: true,
+                  alwaysLinkToLastBuild: true,
+                  keepAll: true,
+                  reportDir: 'htmlcov',
+                  reportFiles: 'index.html',
+                  reportName: "Coverage Report"
+            ])
+            publishHTML (target: [
+                  allowMissing: true,
+                  alwaysLinkToLastBuild: true,
+                  keepAll: true,
+                  reportDir: 'vmaas_tests/html_report',
+                  reportFiles: 'report.html',
+                  reportName: "Test Report"
+            ])
         }
     }
 }
