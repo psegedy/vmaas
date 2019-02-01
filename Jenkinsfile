@@ -174,11 +174,12 @@ def runStages() {
             
             def status = 99
             status = sh(
-                script: "oc exec ${webapp_pod} -- coverage html --fail-under=${codecovThreshold} --omit /usr/\\*",
+                script: "oc exec ${webapp_pod} -- coverage html --fail-under=${codecovThreshold} --omit /usr/\\* -d /tmp/htmlcov",
                 returnStatus: true
             )
 
-            sh "oc cp ${webapp_pod}:/htmlcov ."
+            sh "mkdir htmlcov"
+            sh "oc cp ${webapp_pod}:/tmp/htmlcov htmlcov"
             archiveArtifacts 'htmlcov/*'
 
             withStatusContext.coverage {
