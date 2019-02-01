@@ -173,7 +173,7 @@ def runStages() {
             def status = 99
 
             status = sh(
-                script: "${pipelineVars.userPath}/coverage html --fail-under=${codecovThreshold} --omit /usr/*",
+                script: "${pipelineVars.userPath}/coverage html --fail-under=${codecovThreshold} --omit /usr/\\*",
                 returnStatus: true
             )
 
