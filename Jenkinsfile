@@ -164,19 +164,21 @@ def runStages() {
 
         stage("Code coverage") {
             // Notifies GitHub with the "continuous-integration/jenkins/coverage" status
-            // Kill webapp and copy .coverage file
-            sh '''
-                webapp_pod="$(oc get pods | grep 'Running' | grep 'webapp' | awk '{print $1}')"
-                oc exec "${webapp_pod}" -- pkill -sigint coverage
-                oc cp "${webapp_pod}":/tmp/.coverage .coverage
-            '''
-            def status = 99
+            // Kill webapp and copy coverage in html format
+            webapp_pod = sh(
+                script: "oc get pods | grep 'Running' | grep 'webapp' | awk '{print \$1}'",
+                returnStdout: true
+            ).trim()
 
+            sh "oc exec ${webapp_pod} -- pkill -sigint coverage"
+            
+            def status = 99
             status = sh(
-                script: "${pipelineVars.userPath}/coverage html --fail-under=${codecovThreshold} --omit /usr/\\*",
+                script: "oc exec ${webapp_pod} -- coverage html --fail-under=${codecovThreshold} --omit /usr/\\*",
                 returnStatus: true
             )
 
+            sh "oc cp ${webapp_pod}:/htmlcov ."
             archiveArtifacts 'htmlcov/*'
 
             withStatusContext.coverage {
