@@ -10,12 +10,6 @@
 // Code coverage failure threshold
 codecovThreshold = 89
 
-properties(
-    [
-        pipelineTriggers([cron("H 22 * * *")]),
-    ]
-)
-
 node {
     // Cancel any prior builds that are running for this job
     cancelPriorBuilds()
@@ -31,7 +25,7 @@ def runStages() {
         scmVars = checkout scm
 
         // checkout vmaas_tests git repository
-        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/RedHatInsights/vmaas_tests", credentialsId: "github")
+        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/psegedy/vmaas_tests", credentialsId: "github", branch: "refactor_dbchange")
         checkOutRepo(targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls", credentialsId: "github")
 
         stage("Pip install") {
@@ -59,7 +53,7 @@ def runStages() {
                 sh "oc project vmaas-qe"
             }
 
-            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: "https://github.com/psegedy/e2e-deploy", credentialsId: "github")
+            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: pipelineVars.e2eDeployRepoSsh, credentialsId: pipelineVars.gitSshCreds)
             sh "python3.6 -m venv ${pipelineVars.venvDir}"
             sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
             dir(pipelineVars.e2eDeployDir) {
@@ -67,7 +61,6 @@ def runStages() {
                 // wipe old deployment
                 sh "${pipelineVars.venvDir}/bin/ocdeployer wipe -f vmaas-qe -l app=vmaas"
                 sh """
-                    git checkout vmaas_qa_needs
                     # Create an env.yaml to have the builder pull from a different branch
                     echo "vmaas/vmaas-apidoc:" > builder-env.yml
                     echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
@@ -182,11 +175,13 @@ def runStages() {
 
             sh "mkdir htmlcov"
             sh "oc cp ${webapp_pod}:/tmp/htmlcov htmlcov"
-            archiveArtifacts 'htmlcov/*'
 
             withStatusContext.coverage {
                 assert status == 0
             }
+
+            // run webapp's app.py again
+            sh "oc exec ${webapp_pod} -- /app/app.py &"
         }
 
         stage("Publish in Polarion") {
