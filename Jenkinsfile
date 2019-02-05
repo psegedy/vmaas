@@ -25,7 +25,7 @@ def runStages() {
         scmVars = checkout scm
 
         // checkout vmaas_tests git repository
-        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/psegedy/vmaas_tests", credentialsId: "github", branch: "refactor_dbchange")
+        checkOutRepo(targetDir: "vmaas_tests", repoUrl: "https://github.com/RedHatInsights/vmaas_tests", credentialsId: "github")
         checkOutRepo(targetDir: "vmaas-yamls", repoUrl: "https://github.com/psegedy/vmaas-yamls", credentialsId: "github")
 
         stage("Pip install") {
@@ -45,62 +45,63 @@ def runStages() {
         }
 
         stage("Deploy vmaas") {
-            // todo With status context
-            stage("Login as deployer account") {
-                withCredentials([string(credentialsId: "openshift_token", variable: "TOKEN")]) {
-                    sh "oc login https://${pipelineVars.devCluster} --token=${TOKEN}"
+            withStatusContext.dry("openshift_deployment") {
+                stage("Login as deployer account") {
+                    withCredentials([string(credentialsId: "openshift_token", variable: "TOKEN")]) {
+                        sh "oc login https://${pipelineVars.devCluster} --token=${TOKEN}"
+                    }
+                    sh "oc project vmaas-qe"
                 }
-                sh "oc project vmaas-qe"
-            }
 
-            checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: pipelineVars.e2eDeployRepoSsh, credentialsId: pipelineVars.gitSshCreds)
-            sh "python3.6 -m venv ${pipelineVars.venvDir}"
-            sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
-            dir(pipelineVars.e2eDeployDir) {
-                sh "${pipelineVars.venvDir}/bin/pip install -r requirements.txt"
-                // wipe old deployment
-                sh "${pipelineVars.venvDir}/bin/ocdeployer wipe -f vmaas-qe -l app=vmaas"
-                sh """
-                    # Create an env.yaml to have the builder pull from a different branch
-                    echo "vmaas/vmaas-apidoc:" > builder-env.yml
-                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                    echo "vmaas/vmaas-reposcan:" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                    echo "vmaas/vmaas-webapp:" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                    echo "  DOCKERFILE_PATH: Dockerfile-qe" >> builder-env.yml
-                    echo "vmaas/vmaas-websocket:" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
-                    echo "vmaas/vmaas-db:" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
-                    echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                checkOutRepo(targetDir: pipelineVars.e2eDeployDir, repoUrl: pipelineVars.e2eDeployRepoSsh, credentialsId: pipelineVars.gitSshCreds)
+                sh "python3.6 -m venv ${pipelineVars.venvDir}"
+                sh "${pipelineVars.venvDir}/bin/pip install --upgrade pip"
+                dir(pipelineVars.e2eDeployDir) {
+                    sh "${pipelineVars.venvDir}/bin/pip install -r requirements.txt"
+                    // wipe old deployment
+                    sh "${pipelineVars.venvDir}/bin/ocdeployer wipe -f vmaas-qe -l app=vmaas"
+                    sh """
+                        # Create an env.yaml to have the builder pull from a different branch
+                        echo "vmaas/vmaas-apidoc:" > builder-env.yml
+                        echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                        echo "vmaas/vmaas-reposcan:" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                        echo "vmaas/vmaas-webapp:" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                        echo "  DOCKERFILE_PATH: Dockerfile-qe" >> builder-env.yml
+                        echo "vmaas/vmaas-websocket:" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
+                        echo "vmaas/vmaas-db:" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_REF: ${env.BRANCH_NAME}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_COMMIT: ${scmVars.GIT_COMMIT}" >> builder-env.yml
+                        echo "  SOURCE_REPOSITORY_URL: ${scmVars.GIT_URL}" >> builder-env.yml
 
-                    # Deploy these customized builders into 'vmaas-qe' project
-                    ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas --template-dir buildfactory \
-                        -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
-                """
-                // deploy vmaas service set
-                sh "${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas \
-                    --template-dir ../vmaas_tests/openshift/templates \
-                    -e ../vmaas_tests/openshift/env/env.yml \
-                    vmaas-qe --secrets-local-dir secrets/sanitized"
+                        # Deploy these customized builders into 'vmaas-qe' project
+                        ${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas --template-dir buildfactory \
+                            -e builder-env.yml vmaas-qe --secrets-local-dir secrets/sanitized
+                    """
+                    // deploy vmaas service set
+                    sh "${pipelineVars.venvDir}/bin/ocdeployer deploy -f --sets vmaas \
+                        --template-dir ../vmaas_tests/openshift/templates \
+                        -e ../vmaas_tests/openshift/env/env.yml \
+                        vmaas-qe --secrets-local-dir secrets/sanitized"
+                }
             }
+            
         }
 
         stage("Integration tests") {
             // withStatusContext runs the body code and notifies GitHub on whether it passed or failed
             // "unitTest" will notify the "continuous-integration/jenkins/unittest" status
-            sh "${pipelineVars.userPath}/iqe plugin list"
-            withStatusContext.unitTest {
+            withStatusContext.dry("integration_tests") {
                 sh """
                     cd ~/.local/lib/python3.6/site-packages/iqe/conf
                     ln -rs ${WORKSPACE}/vmaas-yamls/conf/credentials.yaml
