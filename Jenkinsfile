@@ -30,7 +30,6 @@ def runStages() {
 
         stage("Pip install") {
             withStatusContext.pipInstall {
-                // install devpi
                 sh "pip install --user --no-warn-script-location -U pip devpi-client setuptools setuptools_scm wheel"
                 // set devpi address
                 sh "devpi use ${DEV_PI} --set-cfg"
@@ -45,7 +44,7 @@ def runStages() {
         }
 
         stage("Deploy vmaas") {
-            withStatusContext.dry("openshift_deployment") {
+            withStatusContext.dry("continuous-integration/jenkins/deploy") {
                 stage("Login as deployer account") {
                     withCredentials([string(credentialsId: "openshift_token", variable: "TOKEN")]) {
                         sh "oc login https://${pipelineVars.devCluster} --token=${TOKEN}"
@@ -100,16 +99,14 @@ def runStages() {
 
         stage("Integration tests") {
             // withStatusContext runs the body code and notifies GitHub on whether it passed or failed
-            // "unitTest" will notify the "continuous-integration/jenkins/unittest" status
-            withStatusContext.dry("integration_tests") {
+            withStatusContext.dry("continuous-integration/jenkins/integration-tests") {
                 sh """
                     cd ~/.local/lib/python3.6/site-packages/iqe/conf
                     ln -rs ${WORKSPACE}/vmaas-yamls/conf/credentials.yaml
                 """
                 sh """
                     cd vmaas_tests/iqe_vulnerability/conf
-                    ln -rs ${WORKSPACE}/vmaas-yamls/conf/settings.local.yaml
-                    sed -i 's|localhost|http://vmaas-webapp.vmaas-qe.svc:8080|g' settings.default.yaml
+                    ln -rs ${WORKSPACE}/vmaas-yamls/conf/settings.jenkins.yaml
                 """
                 stage("Run vmaas-webapp with coverage") {
                     sh '''
