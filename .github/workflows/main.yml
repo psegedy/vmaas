@@ -15,7 +15,7 @@ jobs:
           login-server: quay.io
       - name: Build and run VMaaS
         run: docker-compose up --build -d
-      - name: Wait for build
+      - name: Wait for VMaaS to run
         run: |
           set +e
           resp=1
@@ -26,4 +26,9 @@ jobs:
       - name: Sync VMaaS repolist
         run: |
           echo "${{ secrets.REPOLIST_JSON }}" > repolist.json
-          cat repolist.json
+          ./scripts/setup_db repolist.json
+      - name: Integration tests
+        run: |
+          docker run -it --name iqe --rm --network host \
+            -e IQE_TESTS_LOCAL_CONF_PATH=/iqe_settings ${{ secrets.IQE_TESTS_IMAGE }} \
+            iqe tests plugin vulnerability -k 'vmaas'
